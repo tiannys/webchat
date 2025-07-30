@@ -1,0 +1,94 @@
+{
+  "server": {
+    "port": 3001,
+    "host": "0.0.0.0",
+    "publicUrl": "http://winwin2home.3bbddns.com:53632"
+  },
+  "frontend": {
+    "publicUrl": "http://winwin2home.3bbddns.com:53630"
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "webchat_db",
+    "username": "webchat_user",
+    "password": "Webchat2024!"
+  },
+  "email": {
+    "enabled": true,
+    "service": "gmail",
+    "fromName": "WebChat System",
+    "fromAddress": "teain1370@gmail.com",
+    "auth": {
+      "user": "teain1370@gmail.com",
+      "pass": "qevebqxoigbxtnqk"
+    },
+    "templates": {
+      "verification": {
+        "subject": "Verify Your Email - WebChat",
+        "expiryHours": 24
+      },
+      "passwordReset": {
+        "subject": "Password Reset - WebChat",
+        "expiryHours": 1
+      },
+      "welcome": {
+        "subject": "Welcome to WebChat!"
+      }
+    }
+  },
+  "auth": {
+    "jwtSecret": "your_jwt_secret_key_change_this_in_production_2024",
+    "jwtExpiresIn": "24h",
+    "bcryptSaltRounds": 12,
+    "requireEmailVerification": true
+  },
+  "allowedEmailDomains": [
+    "gmail.com",
+    "outlook.com",
+    "hotmail.com",
+    "yahoo.com",
+    "company.com",
+    "yourdomain.com",
+    "bmsp.tech"
+  ],
+  "cors": {
+    "origins": [
+      "http://192.168.1.137:3000",
+      "http://winwin2home.3bbddns.com:53630",
+      "http://localhost:3000",
+      "*"
+    ]
+  },
+  "webhook": {
+    "url": "http://172.236.141.236:5679/webhook/webchat",
+    "enabled": true,
+    "timeoutMs": 10000,
+    "maxRetries": 3,
+    "retryDelayMs": 1000,
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "User-Agent": "WebChat-Bot/1.0"
+    }
+  },
+  "logging": {
+    "level": "debug",
+    "logFile": "logs/app.log",
+    "maxFileSize": "10MB",
+    "maxFiles": 5
+  },
+  "rateLimit": {
+    "enabled": false,
+    "windowMs": 60000,
+    "maxRequests": 1000
+  },
+  "features": {
+    "userRegistration": true,
+    "emailVerification": true,
+    "passwordReset": true,
+    "auditLogging": true,
+    "accessLogging": true,
+    "userActivityLogging": true
+  }
+}

@@ -1,24 +1,25 @@
-const router = require('express').Router();
+const express = require('express');
 
-// เพิ่ม route ใน backend/routes/auth.js หรือสร้างไฟล์ใหม่
+module.exports = (config, pool, emailService, logger) => {
+    const router = express.Router();
 
-// Email Verification Route Handler
-router.get('/verify-email', async (req, res) => {
-    const { token } = req.query;
-    
-    if (!token) {
-        return res.status(400).render('verification-result', {
-            success: false,
-            title: 'Invalid Verification Link',
-            message: 'Verification token is missing.',
-            redirectUrl: `${config.frontend.publicUrl}/login`
-        });
-    }
+    // Email Verification Route Handler
+    router.get('/verify-email', async (req, res) => {
+        const { token } = req.query;
 
-    const client = await pool.connect();
-    
-    try {
-        await client.query('BEGIN');
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                title: 'Invalid Verification Link',
+                message: 'Verification token is missing.',
+                redirectUrl: `${config.frontend.publicUrl}/login`
+            });
+        }
+
+        const client = await pool.connect();
+
+        try {
+            await client.query('BEGIN');
 
         // ค้นหา token ในฐานข้อมูล พร้อมข้อมูล user
         const tokenResult = await client.query(`
@@ -39,7 +40,7 @@ router.get('/verify-email', async (req, res) => {
 
         if (tokenResult.rows.length === 0) {
             await client.query('ROLLBACK');
-            return res.status(400).render('verification-result', {
+            return res.status(400).json({
                 success: false,
                 title: 'Invalid Verification Link',
                 message: 'Invalid or expired verification token.',
@@ -59,7 +60,7 @@ router.get('/verify-email', async (req, res) => {
         // ตรวจสอบว่า token หมดอายุหรือไม่
         if (new Date() > new Date(tokenData.expires_at)) {
             await client.query('ROLLBACK');
-            return res.status(400).render('verification-result', {
+            return res.status(400).json({
                 success: false,
                 title: 'Verification Link Expired',
                 message: 'This verification link has expired. Please request a new verification email.',
@@ -70,7 +71,7 @@ router.get('/verify-email', async (req, res) => {
         // ตรวจสอบว่า token ถูกใช้แล้วหรือไม่
         if (tokenData.is_used) {
             await client.query('ROLLBACK');
-            return res.status(400).render('verification-result', {
+            return res.status(400).json({
                 success: false,
                 title: 'Already Verified',
                 message: 'This email has already been verified. You can login now.',
@@ -82,13 +83,13 @@ router.get('/verify-email', async (req, res) => {
         if (user.email_verified) {
             // อัพเดท token ให้เป็น used
             await client.query(`
-                UPDATE email_verification_tokens 
-                SET is_used = true, used_at = CURRENT_TIMESTAMP 
+                UPDATE email_verification_tokens
+                SET is_used = true, used_at = CURRENT_TIMESTAMP
                 WHERE id = $1
             `, [tokenData.token_id]);
-            
+
             await client.query('COMMIT');
-            return res.status(200).render('verification-result', {
+            return res.status(200).json({
                 success: true,
                 title: 'Already Verified',
                 message: 'Your email is already verified. You can login now.',
@@ -125,7 +126,7 @@ router.get('/verify-email', async (req, res) => {
         logger.info(`Email verified successfully for user: ${user.email}`);
 
         // แสดงหน้าสำเร็จ
-        return res.status(200).render('verification-result', {
+        return res.status(200).json({
             success: true,
             title: 'Email Verified Successfully',
             message: `Thank you ${user.first_name}! Your email has been verified successfully. You can now login and start using WebChat.`,
@@ -135,8 +136,8 @@ router.get('/verify-email', async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         logger.error('Email verification error:', error);
-        
-        return res.status(500).render('verification-result', {
+
+        return res.status(500).json({
             success: false,
             title: 'Verification Failed',
             message: 'An error occurred while verifying your email. Please try again or contact support.',
@@ -145,11 +146,11 @@ router.get('/verify-email', async (req, res) => {
     } finally {
         client.release();
     }
-});
+    });
 
-// เพิ่ม route สำหรับ resend verification email
-router.post('/resend-verification', async (req, res) => {
-    const { email } = req.body;
+    // เพิ่ม route สำหรับ resend verification email
+    router.post('/resend-verification', async (req, res) => {
+        const { email } = req.body;
     
     if (!email) {
         return res.status(400).json({
@@ -223,6 +224,7 @@ router.post('/resend-verification', async (req, res) => {
     } finally {
         client.release();
     }
-});
+    });
 
-module.exports = router;
+    return router;
+};

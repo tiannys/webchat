@@ -20,7 +20,6 @@ const EmailService = require('./services/emailService');
 
 // Load configuration
 const config = require('./config.json');
-const authRouter = require('./auth');
 
 // Create logs directory
 const logsDir = path.dirname(config.logging.logFile);
@@ -71,6 +70,9 @@ pool.query('SELECT NOW()', (err, res) => {
 
 // Initialize Email Service
 const emailService = new EmailService(config, logger);
+
+// Initialize Auth routes with dependencies
+const authRouter = require('./auth')(config, pool, emailService, logger);
 
 const app = express();
 

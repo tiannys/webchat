@@ -650,12 +650,14 @@ const ChatInterface = ({ user, token, onLogout }) => {
   const [currentSession, setCurrentSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [themes, setThemes] = useState([]);
   const [currentTheme, setCurrentTheme] = useState(user.themePreference || 'light');
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     loadSessions();
@@ -742,18 +744,40 @@ const ChatInterface = ({ user, token, onLogout }) => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !currentSession) return;
+    if (e) e.preventDefault();
+    if ((!newMessage.trim() && !selectedImage) || !currentSession) return;
 
     setLoading(true);
     const messageText = newMessage;
+    const imageData = selectedImage;
     setNewMessage('');
+    setSelectedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = null;
 
     try {
       await api.post('/api/chat/message', {
         sessionId: currentSession.id,
-        message: messageText
+        message: messageText,
+        image: imageData
       }, token);
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -850,10 +874,14 @@ const ChatInterface = ({ user, token, onLogout }) => {
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`message ${message.message_type === 'user' ? 'user-message' : 'bot-message'}`}
+                    className={`message ${message.message_type === 'bot' ? 'bot-message' : 'user-message'}`}
                   >
                     <div className="message-content">
-                      <div className="message-text">{message.message_text}</div>
+                      {message.message_text.startsWith('data:image') ? (
+                        <img src={message.message_text} alt="sent" className="message-image" />
+                      ) : (
+                        <div className="message-text">{message.message_text}</div>
+                      )}
                       <div className="message-time">
                         {formatTimestamp(message.created_at)}
                         {message.response_time_ms && (
@@ -870,18 +898,31 @@ const ChatInterface = ({ user, token, onLogout }) => {
               </div>
 
               <form className="message-input-form" onSubmit={sendMessage}>
+                {selectedImage && (
+                  <div className="image-preview">
+                    <img src={selectedImage} alt="preview" />
+                  </div>
+                )}
                 <div className="input-container">
-                  <input
-                    type="text"
+                  <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type your message..."
                     disabled={loading}
                     className="message-input"
+                    rows={2}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    disabled={loading}
+                    ref={fileInputRef}
                   />
                   <button
                     type="submit"
-                    disabled={loading || !newMessage.trim()}
+                    disabled={loading || (!newMessage.trim() && !selectedImage)}
                     className="send-button"
                   >
                     {loading ? 'Sending...' : 'Send'}

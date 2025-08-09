@@ -2,10 +2,10 @@
   "server": {
     "port": 3001,
     "host": "0.0.0.0",
-    "publicUrl": "XXXXXX"
+    "publicUrl": "http://localhost:3001"
   },
   "frontend": {
-    "publicUrl": "XXXXXX"
+    "publicUrl": "http://localhost:3000"
   },
   "database": {
     "host": "localhost",

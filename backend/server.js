@@ -15,11 +15,15 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 
+require('dotenv').config();
+
 // Import Email Service
 const EmailService = require('./services/emailService');
 
 // Load configuration
 const config = require('./config.json');
+config.server.publicUrl = process.env.SERVER_PUBLIC_URL || config.server.publicUrl;
+config.frontend.publicUrl = process.env.FRONTEND_PUBLIC_URL || config.frontend.publicUrl;
 const authRouter = require('./auth');
 
 // Create logs directory

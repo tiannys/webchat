@@ -584,6 +584,20 @@ body {
   transform: none;
 }
 
+.image-preview {
+  margin-bottom: 8px;
+}
+
+.image-preview img {
+  max-height: 100px;
+  border-radius: var(--border-radius);
+}
+
+.message-image {
+  max-width: 300px;
+  border-radius: var(--border-radius);
+}
+
 /* Settings Menu */
 .settings-menu {
   position: fixed;

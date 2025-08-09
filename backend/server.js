@@ -861,11 +861,11 @@ app.delete('/api/chat/sessions/:sessionId', authenticateToken, async (req, res) 
 // Send message
 app.post('/api/chat/message', authenticateToken, async (req, res) => {
     try {
-        const { sessionId, message } = req.body;
+        const { sessionId, message, image } = req.body;
         const userId = req.user.id;
 
-        if (!sessionId || !message) {
-            return res.status(400).json({ error: 'Session ID and message are required' });
+        if (!sessionId || (!message && !image)) {
+            return res.status(400).json({ error: 'Session ID and message or image are required' });
         }
 
         const sessionResult = await pool.query(
@@ -877,10 +877,12 @@ app.post('/api/chat/message', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Session not found' });
         }
 
+        const content = message || image;
+        const type = image ? 'image' : 'user';
         const messageResult = await pool.query(
             `INSERT INTO messages (session_id, user_id, message_text, message_type)
-             VALUES ($1, $2, $3, 'user') RETURNING *`,
-            [sessionId, userId, message]
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [sessionId, userId, content, type]
         );
 
         const userMessage = messageResult.rows[0];
@@ -888,7 +890,7 @@ app.post('/api/chat/message', authenticateToken, async (req, res) => {
         let webhookResponse = null;
         let responseTime = null;
 
-        if (config.webhook.enabled && config.webhook.url) {
+        if (config.webhook.enabled && config.webhook.url && message) {
             const startTime = Date.now();
             try {
                 const payload = {
@@ -938,7 +940,7 @@ app.post('/api/chat/message', authenticateToken, async (req, res) => {
         }
 
         await pool.query('UPDATE chat_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [sessionId]);
-        await logUserActivity(userId, 'message_sent', { sessionId, messageLength: message.length }, req);
+        await logUserActivity(userId, 'message_sent', { sessionId, messageLength: content.length }, req);
 
         res.json({
             userMessage,

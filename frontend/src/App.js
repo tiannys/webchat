@@ -69,6 +69,25 @@ const api = {
     }
     
     return response.json();
+  },
+
+  delete: async (endpoint, token = null) => {
+    const headers = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Request failed');
+    }
+
+    return response.json();
   }
 };
 
@@ -576,6 +595,21 @@ const ChatInterface = ({ user, token, onLogout }) => {
     }
   };
 
+  const deleteSession = async (sessionId) => {
+    if (!window.confirm('Are you sure you want to delete this session?')) return;
+    try {
+      await api.delete(`/api/chat/sessions/${sessionId}`, token);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      if (currentSession?.id === sessionId) {
+        setCurrentSession(null);
+        setMessages([]);
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      alert('Failed to delete session');
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !currentSession) return;
@@ -648,12 +682,23 @@ const ChatInterface = ({ user, token, onLogout }) => {
                   className={`session-item ${currentSession?.id === session.id ? 'active' : ''}`}
                   onClick={() => setCurrentSession(session)}
                 >
-                  <div className="session-name">
-                    {session.session_name || `Chat ${session.id}`}
+                  <div className="session-info">
+                    <div className="session-name">
+                      {session.session_name || `Chat ${session.id}`}
+                    </div>
+                    <div className="session-meta">
+                      {session.message_count} messages
+                    </div>
                   </div>
-                  <div className="session-meta">
-                    {session.message_count} messages
-                  </div>
+                  <button
+                    className="btn-small delete-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSession(session.id);
+                    }}
+                  >
+                    Delete
+                  </button>
                 </div>
               ))}
             </div>

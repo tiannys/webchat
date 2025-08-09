@@ -351,6 +351,88 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// Request password reset
+app.post('/api/auth/request-password-reset', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const userResult = await pool.query('SELECT id, email, first_name FROM users WHERE email = $1', [email]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const user = userResult.rows[0];
+
+        await pool.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [user.id]);
+
+        const token = generateVerificationToken();
+        const expiresAt = new Date(Date.now() + (config.email.templates.passwordReset.expiryHours || 1) * 60 * 60 * 1000);
+
+        await pool.query(
+            `INSERT INTO password_reset_tokens (user_id, token, expires_at)
+             VALUES ($1, $2, $3)`,
+            [user.id, token, expiresAt]
+        );
+
+        if (emailService) {
+            const emailSent = await emailService.sendPasswordResetEmail(user, token);
+            if (!emailSent) {
+                throw new Error('Failed to send password reset email');
+            }
+        }
+
+        res.json({ message: 'Password reset email sent' });
+    } catch (error) {
+        logger.error('Password reset request error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Reset password
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({ error: 'Token and password are required' });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+        }
+
+        const tokenResult = await pool.query(
+            `SELECT * FROM password_reset_tokens
+             WHERE token = $1 AND expires_at > NOW() AND used_at IS NULL`,
+            [token]
+        );
+
+        if (tokenResult.rows.length === 0) {
+            return res.status(400).json({ error: 'Invalid or expired token' });
+        }
+
+        const resetToken = tokenResult.rows[0];
+
+        const passwordHash = await bcrypt.hash(password, config.auth.bcryptSaltRounds);
+
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, resetToken.user_id]);
+
+        await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [resetToken.id]);
+
+        await logAudit(resetToken.user_id, 'PASSWORD_RESET', 'users', resetToken.user_id, null, null, req);
+        await logUserActivity(resetToken.user_id, 'password_reset', null, req);
+
+        res.json({ message: 'Password has been reset successfully' });
+    } catch (error) {
+        logger.error('Password reset error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Get user profile
 app.get('/api/user/profile', authenticateToken, (req, res) => {
     res.json({

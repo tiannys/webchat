@@ -127,6 +127,47 @@ WebChat Team
         }
     }
 
+    async sendPasswordResetEmail(user, token) {
+        if (!this.transporter) {
+            this.logger.warn('Email service not configured, skipping password reset email');
+            return false;
+        }
+
+        try {
+            const resetUrl = `${this.config.frontend.publicUrl}/reset-password?token=${token}`;
+
+            const mailOptions = {
+                from: {
+                    name: this.config.email.fromName || 'WebChat',
+                    address: this.config.email.fromAddress || 'noreply@webchat.local'
+                },
+                to: user.email,
+                subject: this.config.email.templates.passwordReset.subject || 'Password Reset',
+                html: this.getPasswordResetEmailTemplate(user, resetUrl),
+                text: `
+Hello ${user.first_name},
+
+Please reset your password by clicking the link below:
+${resetUrl}
+
+This link will expire in ${this.config.email.templates.passwordReset.expiryHours} hours.
+
+If you didn't request a password reset, please ignore this email.
+
+Best regards,
+WebChat Team
+                `.trim()
+            };
+
+            const result = await this.transporter.sendMail(mailOptions);
+            this.logger.info(`Password reset email sent to ${user.email}`, { messageId: result.messageId });
+            return true;
+        } catch (error) {
+            this.logger.error('Failed to send password reset email:', error);
+            return false;
+        }
+    }
+
     getVerificationEmailTemplate(user, verificationUrl) {
         return `
         <!DOCTYPE html>
@@ -164,6 +205,49 @@ WebChat Team
                     
                     <p><strong>Note:</strong> This link will expire in 24 hours.</p>
                     <p>If you didn't create an account with WebChat, please ignore this email.</p>
+                </div>
+                <div class="footer">
+                    <p>© 2025 WebChat. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+    }
+
+    getPasswordResetEmailTemplate(user, resetUrl) {
+        return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Password Reset</title>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f4f4f4; }
+                .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+                .header { background: linear-gradient(135deg, #6366f1, #3b82f6); color: white; padding: 30px; text-align: center; }
+                .content { padding: 30px; }
+                .button { display: inline-block; background: #3b82f6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+                .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🔒 Reset Your Password</h1>
+                </div>
+                <div class="content">
+                    <h2>Hello ${user.first_name}!</h2>
+                    <p>We received a request to reset your password. Click the button below to choose a new one.</p>
+                    <div style="text-align: center;">
+                        <a href="${resetUrl}" class="button">Reset Password</a>
+                    </div>
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p style="word-break: break-all; background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace;">
+                        ${resetUrl}
+                    </p>
+                    <p><strong>Note:</strong> This link will expire in ${this.config.email.templates.passwordReset.expiryHours} hours.</p>
+                    <p>If you didn't request a password reset, you can safely ignore this email.</p>
                 </div>
                 <div class="footer">
                     <p>© 2025 WebChat. All rights reserved.</p>

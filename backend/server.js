@@ -12,6 +12,8 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 
 // Import Email Service
 const EmailService = require('./services/emailService');
@@ -70,6 +72,27 @@ pool.query('SELECT NOW()', (err, res) => {
 const emailService = new EmailService(config, logger);
 
 const app = express();
+
+// HTTP server and WebSocket setup
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: config.cors.origins.includes('*') ? '*' : config.cors.origins,
+        methods: ['GET', 'POST']
+    }
+});
+
+io.on('connection', (socket) => {
+    logger.info('WebSocket client connected');
+
+    socket.on('joinSession', (sessionId) => {
+        socket.join(`session_${sessionId}`);
+    });
+
+    socket.on('disconnect', () => {
+        logger.info('WebSocket client disconnected');
+    });
+});
 
 // Security middleware
 app.use(helmet({
@@ -750,6 +773,7 @@ app.post('/api/chat/message', authenticateToken, async (req, res) => {
         );
 
         const userMessage = messageResult.rows[0];
+        io.to(`session_${sessionId}`).emit('newMessage', userMessage);
         let webhookResponse = null;
         let responseTime = null;
 
@@ -787,11 +811,13 @@ app.post('/api/chat/message', authenticateToken, async (req, res) => {
                     ? webhookResponse 
                     : (webhookResponse.text || webhookResponse.response || JSON.stringify(webhookResponse, null, 2));
 
-                await pool.query(
+                const botMessageResult = await pool.query(
                     `INSERT INTO messages (session_id, user_id, message_text, message_type, webhook_response, response_time_ms)
-                     VALUES ($1, $2, $3, 'bot', $4, $5)`,
+                     VALUES ($1, $2, $3, 'bot', $4, $5) RETURNING *`,
                     [sessionId, userId, botMessageText, JSON.stringify(webhookResponse), responseTime]
                 );
+                const botMessage = botMessageResult.rows[0];
+                io.to(`session_${sessionId}`).emit('newMessage', botMessage);
 
             } catch (error) {
                 responseTime = Date.now() - startTime;
@@ -859,7 +885,7 @@ app.use((req, res) => {
 
 // Start server
 const PORT = config.server.port;
-app.listen(PORT, config.server.host, async () => {
+server.listen(PORT, config.server.host, async () => {
     logger.info(`Server running on ${config.server.host}:${PORT}`);
     logger.info(`Public URL: ${config.server.publicUrl}`);
     

@@ -365,13 +365,13 @@ app.get('/api/user/profile', authenticateToken, (req, res) => {
     });
 });
 
-// แก้ไข verify-email endpoint ให้ตรงกับ config.json
+// Update verify-email endpoint to respect config.json
 
 app.get('/api/auth/verify-email', async (req, res) => {
     try {
         const { token } = req.query;
 
-        // ใช้ frontend.publicUrl ตาม config.json ของคุณ
+        // Use frontend.publicUrl from config.json
         const frontendUrl = config.frontend?.publicUrl || config.server.publicUrl;
         const loginUrl = `${frontendUrl}/login`;
 

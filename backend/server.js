@@ -751,6 +751,36 @@ app.get('/api/chat/sessions', authenticateToken, async (req, res) => {
     }
 });
 
+app.put('/api/chat/sessions/:sessionId', authenticateToken, async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const { sessionName } = req.body;
+        const userId = req.user.id;
+
+        if (!sessionName || sessionName.trim() === '') {
+            return res.status(400).json({ error: 'Session name is required' });
+        }
+
+        const result = await pool.query(
+            `UPDATE chat_sessions SET session_name = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2 AND user_id = $3 AND is_active = true RETURNING *`,
+            [sessionName, sessionId, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        const session = result.rows[0];
+        await logUserActivity(userId, 'chat_session_renamed', { sessionId: session.id, sessionName: session.session_name }, req);
+
+        res.json(session);
+    } catch (error) {
+        logger.error('Rename session error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Send message
 app.post('/api/chat/message', authenticateToken, async (req, res) => {
     try {

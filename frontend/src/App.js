@@ -576,6 +576,22 @@ const ChatInterface = ({ user, token, onLogout }) => {
     }
   };
 
+  const renameSession = async (session) => {
+    const newName = prompt('Enter new session name:', session.session_name || '');
+    if (!newName || newName.trim() === '' || newName === session.session_name) return;
+    try {
+      const updated = await api.put(`/api/chat/sessions/${session.id}`, { sessionName: newName }, token);
+      const sessionWithMeta = { ...session, ...updated };
+      setSessions(sessions.map(s => s.id === session.id ? sessionWithMeta : s));
+      if (currentSession && currentSession.id === session.id) {
+        setCurrentSession(sessionWithMeta);
+      }
+    } catch (err) {
+      console.error('Failed to rename session:', err);
+      alert('Failed to rename session');
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !currentSession) return;
@@ -648,12 +664,23 @@ const ChatInterface = ({ user, token, onLogout }) => {
                   className={`session-item ${currentSession?.id === session.id ? 'active' : ''}`}
                   onClick={() => setCurrentSession(session)}
                 >
-                  <div className="session-name">
-                    {session.session_name || `Chat ${session.id}`}
+                  <div className="session-details">
+                    <div className="session-name">
+                      {session.session_name || `Chat ${session.id}`}
+                    </div>
+                    <div className="session-meta">
+                      {session.message_count} messages
+                    </div>
                   </div>
-                  <div className="session-meta">
-                    {session.message_count} messages
-                  </div>
+                  <button
+                    className="link-button btn-small rename-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      renameSession(session);
+                    }}
+                  >
+                    Rename
+                  </button>
                 </div>
               ))}
             </div>

@@ -857,21 +857,23 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Endpoint not found' });
 });
 
-// Start server
+// Start server when not running tests
 const PORT = config.server.port;
-app.listen(PORT, config.server.host, async () => {
-    logger.info(`Server running on ${config.server.host}:${PORT}`);
-    logger.info(`Public URL: ${config.server.publicUrl}`);
-    
-    if (config.email && config.email.enabled) {
-        const emailWorking = await emailService.testConnection();
-        if (emailWorking) {
-            logger.info('✅ Email service is ready');
-        } else {
-            logger.warn('⚠️ Email service is not configured properly');
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, config.server.host, async () => {
+        logger.info(`Server running on ${config.server.host}:${PORT}`);
+        logger.info(`Public URL: ${config.server.publicUrl}`);
+
+        if (config.email && config.email.enabled) {
+            const emailWorking = await emailService.testConnection();
+            if (emailWorking) {
+                logger.info('✅ Email service is ready');
+            } else {
+                logger.warn('⚠️ Email service is not configured properly');
+            }
         }
-    }
-});
+    });
+}
 
 process.on('SIGTERM', () => {
     logger.info('SIGTERM received, shutting down gracefully');

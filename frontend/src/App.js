@@ -653,7 +653,7 @@ const ChatInterface = ({ user, token, onLogout }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [themes, setThemes] = useState([]);
-  const [currentTheme, setCurrentTheme] = useState(user.themePreference || 'light');
+  const [currentTheme, setCurrentTheme] = useState(user.themePreference || 'dark');
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
@@ -854,7 +854,7 @@ const ChatInterface = ({ user, token, onLogout }) => {
                       deleteSession(session.id);
                     }}
                   >
-                    Delete
+                    🗑
                   </button>
                 </div>
               ))}
@@ -919,7 +919,17 @@ const ChatInterface = ({ user, token, onLogout }) => {
                     onChange={handleImageChange}
                     disabled={loading}
                     ref={fileInputRef}
+                    id="image-upload"
+                    style={{ display: 'none' }}
                   />
+                  <button
+                    type="button"
+                    className="upload-button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                  >
+                    📎
+                  </button>
                   <button
                     type="submit"
                     disabled={loading || (!newMessage.trim() && !selectedImage)}

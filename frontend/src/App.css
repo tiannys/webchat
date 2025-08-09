@@ -2,11 +2,11 @@
 
 /* CSS Custom Properties for Themes */
 :root {
-  --primary-color: #3b82f6;
-  --secondary-color: #10b981;
-  --background-color: #ffffff;
-  --text-color: #1f2937;
-  --border-color: #e5e7eb;
+  --primary-color: #10a37f;
+  --secondary-color: #1a7f64;
+  --background-color: #343541;
+  --text-color: #ececf1;
+  --border-color: #444654;
   --success-color: #10b981;
   --error-color: #ef4444;
   --warning-color: #f59e0b;
@@ -29,14 +29,14 @@
 }
 
 .theme-dark {
-  --primary-color: #6366f1;
-  --secondary-color: #06d6a0;
-  --background-color: #1f2937;
-  --text-color: #f9fafb;
-  --border-color: #374151;
-  --sidebar-bg: #111827;
-  --message-bg: #374151;
-  --input-bg: #374151;
+  --primary-color: #10a37f;
+  --secondary-color: #1a7f64;
+  --background-color: #343541;
+  --text-color: #ececf1;
+  --border-color: #444654;
+  --sidebar-bg: #202123;
+  --message-bg: #444654;
+  --input-bg: #40414f;
 }
 
 .theme-ocean {
@@ -238,6 +238,35 @@ body {
 .btn-small {
   padding: 6px 12px;
   font-size: 12px;
+}
+
+.delete-button {
+  background-color: transparent;
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.delete-button:hover {
+  background-color: var(--error-color);
+  color: #fff;
+}
+
+.upload-button {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 6px 10px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  margin-left: 8px;
+}
+
+.upload-button:hover {
+  background-color: var(--border-color);
 }
 
 .link-button {

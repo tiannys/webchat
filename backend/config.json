@@ -2,10 +2,10 @@
   "server": {
     "port": 3001,
     "host": "0.0.0.0",
-    "publicUrl": "http://localhost:3001"
+    "publicUrl": "http://winwin2home.3bbddns.com:53632"
   },
   "frontend": {
-    "publicUrl": "http://localhost:3000"
+    "publicUrl": "http://winwin2home.3bbddns.com:53630"
   },
   "database": {
     "host": "localhost",

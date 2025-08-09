@@ -1,6 +1,7 @@
 // WebChat - Simple Interface with Email Verification Messages - App.js
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import { io } from 'socket.io-client';
 
 // API Configuration
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
@@ -503,15 +504,24 @@ const ChatInterface = ({ user, token, onLogout }) => {
   const [currentTheme, setCurrentTheme] = useState(user.themePreference || 'light');
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     loadSessions();
     loadThemes();
+    socketRef.current = io(API_BASE_URL);
+    socketRef.current.on('newMessage', (message) => {
+      setMessages(prev => [...prev, message]);
+    });
+    return () => {
+      socketRef.current.disconnect();
+    };
   }, []);
 
   useEffect(() => {
     if (currentSession) {
       loadMessages(currentSession.id);
+      socketRef.current.emit('joinSession', currentSession.id);
     }
   }, [currentSession]);
 
@@ -575,34 +585,10 @@ const ChatInterface = ({ user, token, onLogout }) => {
     setNewMessage('');
 
     try {
-      const response = await api.post('/api/chat/message', {
+      await api.post('/api/chat/message', {
         sessionId: currentSession.id,
         message: messageText
       }, token);
-
-      // Add user message
-      const userMessage = {
-        ...response.userMessage,
-        created_at: new Date().toISOString()
-      };
-      
-      setMessages(prev => [...prev, userMessage]);
-
-      // Add bot response if available
-      if (response.webhookResponse) {
-        const botMessage = {
-          id: Date.now(),
-          message_text: typeof response.webhookResponse === 'string' 
-            ? response.webhookResponse 
-            : (response.webhookResponse.text || response.webhookResponse.response || JSON.stringify(response.webhookResponse, null, 2)),
-          message_type: 'bot',
-          created_at: new Date().toISOString(),
-          response_time_ms: response.responseTime
-        };
-        
-        setMessages(prev => [...prev, botMessage]);
-      }
-
     } catch (err) {
       console.error('Failed to send message:', err);
       alert('Failed to send message');

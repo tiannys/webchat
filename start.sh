@@ -1,4 +1,10 @@
 #!/bin/bash
+
+# Load environment variables
+set -a
+[ -f .env ] && source .env
+set +a
+
 echo "🚀 Starting WebChat services..."
 
 # Start database

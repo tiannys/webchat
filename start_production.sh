@@ -1,4 +1,10 @@
 #!/bin/bash
+
+# Load environment variables
+set -a
+[ -f .env ] && source .env
+set +a
+
 echo "🚀 Starting WebChat in Production Mode"
 
 # Stop existing services

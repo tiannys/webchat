@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 // API Configuration
-const API_BASE_URL = 'http://winwin2home.3bbddns.com:53632';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 // API Helper Functions
 const api = {

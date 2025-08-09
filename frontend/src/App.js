@@ -137,7 +137,7 @@ const EmailNotVerified = ({ email, onResend, onLogout }) => {
     };
 
 // Login Component
-const Login = ({ onLogin, onToggleMode }) => {
+const Login = ({ onLogin, onToggleMode, onForgotPassword }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -246,6 +246,11 @@ const Login = ({ onLogin, onToggleMode }) => {
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
+        <p>
+          <button className="link-button" type="button" onClick={onForgotPassword}>
+            Forgot password?
+          </button>
+        </p>
         <p>
           Don't have an account?{' '}
           <button className="link-button" onClick={onToggleMode}>
@@ -419,6 +424,133 @@ const Register = ({ onRegister, onToggleMode }) => {
           Already have an account?{' '}
           <button className="link-button" onClick={onToggleMode}>
             Sign in
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Forgot Password Component
+const ForgotPassword = ({ onBack }) => {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    setError('');
+    try {
+      await api.post('/api/auth/request-password-reset', { email });
+      setMessage('Password reset email sent. Please check your inbox.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <h2>Forgot Password</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="resetEmail">Email</label>
+            <input
+              type="email"
+              id="resetEmail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+          {message && <div className="message success">{message}</div>}
+          {error && <div className="message error">{error}</div>}
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Sending...' : 'Send Reset Link'}
+          </button>
+        </form>
+        <p>
+          <button className="link-button" onClick={onBack}>
+            Back to login
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Reset Password Component
+const ResetPassword = ({ token, onBack }) => {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await api.post('/api/auth/reset-password', { token, password });
+      setMessage('Password has been reset. You can now log in.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <h2>Reset Password</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="newPassword">New Password</label>
+            <input
+              type="password"
+              id="newPassword"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="confirmNewPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmNewPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+          {message && <div className="message success">{message}</div>}
+          {error && <div className="message error">{error}</div>}
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Resetting...' : 'Reset Password'}
+          </button>
+        </form>
+        <p>
+          <button className="link-button" onClick={onBack}>
+            Back to login
           </button>
         </p>
       </div>
@@ -734,18 +866,27 @@ const ChatInterface = ({ user, token, onLogout }) => {
 const App = () => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [isLogin, setIsLogin] = useState(true);
+  const [authMode, setAuthMode] = useState('login');
+  const [resetToken, setResetToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
-    
+
     if (savedToken && savedUser) {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
     }
-    
+
+    const params = new URLSearchParams(window.location.search);
+    const reset = params.get('token');
+    if (reset) {
+      setAuthMode('reset');
+      setResetToken(reset);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     setLoading(false);
   }, []);
 
@@ -755,7 +896,7 @@ const App = () => {
   };
 
   const handleRegister = () => {
-    setIsLogin(true);
+    setAuthMode('login');
     alert('Registration successful! Please log in.');
   };
 
@@ -781,10 +922,17 @@ const App = () => {
 
   return (
     <div className="app">
-      {isLogin ? (
-        <Login onLogin={handleLogin} onToggleMode={() => setIsLogin(false)} />
-      ) : (
-        <Register onRegister={handleRegister} onToggleMode={() => setIsLogin(true)} />
+      {authMode === 'login' && (
+        <Login onLogin={handleLogin} onToggleMode={() => setAuthMode('register')} onForgotPassword={() => setAuthMode('forgot')} />
+      )}
+      {authMode === 'register' && (
+        <Register onRegister={handleRegister} onToggleMode={() => setAuthMode('login')} />
+      )}
+      {authMode === 'forgot' && (
+        <ForgotPassword onBack={() => setAuthMode('login')} />
+      )}
+      {authMode === 'reset' && (
+        <ResetPassword token={resetToken} onBack={() => setAuthMode('login')} />
       )}
     </div>
   );

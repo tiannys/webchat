@@ -7,6 +7,8 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
+    customer_name VARCHAR(255),
+    product_logo VARCHAR(500),
     theme_preference VARCHAR(50) DEFAULT 'light',
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

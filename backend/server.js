@@ -341,6 +341,8 @@ app.post('/api/auth/login', async (req, res) => {
                 email: user.email,
                 firstName: user.first_name,
                 lastName: user.last_name,
+                customerName: user.customer_name,
+                productLogo: user.product_logo,
                 themePreference: user.theme_preference,
                 emailVerified: user.email_verified
             }
@@ -440,11 +442,49 @@ app.get('/api/user/profile', authenticateToken, (req, res) => {
         email: req.user.email,
         firstName: req.user.first_name,
         lastName: req.user.last_name,
+        customerName: req.user.customer_name,
+        productLogo: req.user.product_logo,
         themePreference: req.user.theme_preference,
         emailVerified: req.user.email_verified,
         createdAt: req.user.created_at,
         lastLogin: req.user.last_login
     });
+});
+
+// Update user profile
+app.put('/api/user/profile', authenticateToken, async (req, res) => {
+    try {
+        const { customerName, productLogo } = req.body;
+        await pool.query(
+            `UPDATE users SET customer_name = $1, product_logo = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+            [customerName, productLogo, req.user.id]
+        );
+
+        const result = await pool.query(
+            `SELECT id, email, first_name, last_name, customer_name, product_logo, theme_preference, email_verified, created_at, last_login
+             FROM users WHERE id = $1`,
+            [req.user.id]
+        );
+
+        res.json({
+            message: 'Profile updated successfully',
+            user: {
+                id: result.rows[0].id,
+                email: result.rows[0].email,
+                firstName: result.rows[0].first_name,
+                lastName: result.rows[0].last_name,
+                customerName: result.rows[0].customer_name,
+                productLogo: result.rows[0].product_logo,
+                themePreference: result.rows[0].theme_preference,
+                emailVerified: result.rows[0].email_verified,
+                createdAt: result.rows[0].created_at,
+                lastLogin: result.rows[0].last_login
+            }
+        });
+    } catch (error) {
+        logger.error('Profile update error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 // Update verify-email endpoint to respect config.json

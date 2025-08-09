@@ -622,14 +622,59 @@ const ThemeSelector = ({ currentTheme, themes, onThemeChange, token }) => {
   );
 };
 
+const ProfileSettings = ({ user, onUpdate, token }) => {
+  const [customerName, setCustomerName] = useState(user?.customerName || '');
+  const [productLogo, setProductLogo] = useState(user?.productLogo || '');
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await api.put('/api/user/profile', { customerName, productLogo }, token);
+      const updatedUser = response.user;
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      onUpdate(updatedUser);
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="profile-settings">
+      <h4>Profile</h4>
+      <form onSubmit={handleSave}>
+        <label>Customer Name</label>
+        <input
+          type="text"
+          value={customerName}
+          onChange={(e) => setCustomerName(e.target.value)}
+        />
+        <label>Product Logo URL</label>
+        <input
+          type="text"
+          value={productLogo}
+          onChange={(e) => setProductLogo(e.target.value)}
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Saving...' : 'Save'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
 // Settings Menu Component
-const SettingsMenu = ({ visible, onClose, currentTheme, themes, onThemeChange, token }) => {
+const SettingsMenu = ({ visible, onClose, currentTheme, themes, onThemeChange, token, user, onUserUpdate }) => {
   if (!visible) return null;
 
   return (
     <div className="settings-menu">
       <div className="settings-content">
         <h2>Settings</h2>
+        <ProfileSettings user={user} onUpdate={onUserUpdate} token={token} />
         <ThemeSelector
           currentTheme={currentTheme}
           themes={themes}
@@ -645,7 +690,7 @@ const SettingsMenu = ({ visible, onClose, currentTheme, themes, onThemeChange, t
 };
 
 // Chat Interface Component
-const ChatInterface = ({ user, token, onLogout }) => {
+const ChatInterface = ({ user, setUser, token, onLogout }) => {
   const [sessions, setSessions] = useState([]);
   const [currentSession, setCurrentSession] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -955,6 +1000,8 @@ const ChatInterface = ({ user, token, onLogout }) => {
       themes={themes}
       onThemeChange={handleThemeChange}
       token={token}
+      user={user}
+      onUserUpdate={setUser}
     />
     </>
   );
@@ -1015,7 +1062,7 @@ const App = () => {
   }
 
   if (user && token) {
-    return <ChatInterface user={user} token={token} onLogout={handleLogout} />;
+    return <ChatInterface user={user} setUser={setUser} token={token} onLogout={handleLogout} />;
   }
 
   return (

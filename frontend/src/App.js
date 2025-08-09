@@ -779,6 +779,7 @@ const ChatInterface = ({ user, token, onLogout }) => {
   };
 
   return (
+    <>
     <div className={`chat-app theme-${currentTheme}`}>
       <div className="chat-header">
         <div className="header-left">
@@ -895,16 +896,17 @@ const ChatInterface = ({ user, token, onLogout }) => {
           )}
         </div>
       </div>
-      <SettingsMenu
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-        currentTheme={currentTheme}
-        themes={themes}
-        onThemeChange={handleThemeChange}
-        token={token}
-      />
-      </div>
-    );
+    </div>
+    <SettingsMenu
+      visible={showSettings}
+      onClose={() => setShowSettings(false)}
+      currentTheme={currentTheme}
+      themes={themes}
+      onThemeChange={handleThemeChange}
+      token={token}
+    />
+    </>
+  );
   };
 
 // Main App Component

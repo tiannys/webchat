@@ -751,6 +751,29 @@ app.get('/api/chat/sessions', authenticateToken, async (req, res) => {
     }
 });
 
+app.delete('/api/chat/sessions/:sessionId', authenticateToken, async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const userId = req.user.id;
+
+        const result = await pool.query(
+            `UPDATE chat_sessions SET is_active = false, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1 AND user_id = $2 AND is_active = true RETURNING *`,
+            [sessionId, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        await logUserActivity(userId, 'chat_session_deleted', { sessionId }, req);
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Delete session error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Send message
 app.post('/api/chat/message', authenticateToken, async (req, res) => {
     try {

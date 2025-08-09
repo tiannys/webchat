@@ -130,10 +130,10 @@ const EmailNotVerified = ({ email, onResend, onLogout }) => {
             <li>Wait a few minutes and try resending</li>
           </ul>
         </div>
+        </div>
       </div>
-    </div>
-  );
-};
+      );
+    };
 
 // Login Component
 const Login = ({ onLogin, onToggleMode }) => {
@@ -470,6 +470,28 @@ const ThemeSelector = ({ currentTheme, themes, onThemeChange, token }) => {
   );
 };
 
+// Settings Menu Component
+const SettingsMenu = ({ visible, onClose, currentTheme, themes, onThemeChange, token }) => {
+  if (!visible) return null;
+
+  return (
+    <div className="settings-menu">
+      <div className="settings-content">
+        <h2>Settings</h2>
+        <ThemeSelector
+          currentTheme={currentTheme}
+          themes={themes}
+          onThemeChange={onThemeChange}
+          token={token}
+        />
+        <button className="btn-secondary settings-close" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Chat Interface Component
 const ChatInterface = ({ user, token, onLogout }) => {
   const [sessions, setSessions] = useState([]);
@@ -479,6 +501,7 @@ const ChatInterface = ({ user, token, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [themes, setThemes] = useState([]);
   const [currentTheme, setCurrentTheme] = useState(user.themePreference || 'light');
+  const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -614,6 +637,9 @@ const ChatInterface = ({ user, token, onLogout }) => {
           </span>
         </div>
         <div className="header-right">
+          <button className="btn-secondary" onClick={() => setShowSettings(true)}>
+            Settings
+          </button>
           <button className="btn-secondary" onClick={onLogout}>
             Logout
           </button>
@@ -647,12 +673,6 @@ const ChatInterface = ({ user, token, onLogout }) => {
             </div>
           </div>
 
-          <ThemeSelector
-            currentTheme={currentTheme}
-            themes={themes}
-            onThemeChange={handleThemeChange}
-            token={token}
-          />
         </div>
 
         <div className="chat-main">
@@ -712,9 +732,17 @@ const ChatInterface = ({ user, token, onLogout }) => {
           )}
         </div>
       </div>
-    </div>
-  );
-};
+      <SettingsMenu
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+        currentTheme={currentTheme}
+        themes={themes}
+        onThemeChange={handleThemeChange}
+        token={token}
+      />
+      </div>
+    );
+  };
 
 // Main App Component
 const App = () => {

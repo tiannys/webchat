@@ -1,3 +1,5 @@
+const router = require('express').Router();
+
 // เพิ่ม route ใน backend/routes/auth.js หรือสร้างไฟล์ใหม่
 
 // Email Verification Route Handler
@@ -222,3 +224,5 @@ router.post('/resend-verification', async (req, res) => {
         client.release();
     }
 });
+
+module.exports = router;

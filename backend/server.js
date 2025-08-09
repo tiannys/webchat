@@ -20,6 +20,7 @@ const EmailService = require('./services/emailService');
 
 // Load configuration
 const config = require('./config.json');
+const authRouter = require('./auth');
 
 // Create logs directory
 const logsDir = path.dirname(config.logging.logFile);
@@ -143,6 +144,8 @@ app.use(async (req, res, next) => {
 app.use(morgan('combined', {
     stream: { write: message => logger.info(message.trim()) }
 }));
+
+app.use('/api/auth', authRouter);
 
 // JWT Authentication middleware
 const authenticateToken = async (req, res, next) => {

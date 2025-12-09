@@ -607,6 +607,15 @@ a:hover {
   flex-shrink: 0;
 }
 
+/* User messages - align right */
+.message.user {
+  flex-direction: row-reverse;
+}
+
+.message.user .message-content {
+  text-align: right;
+}
+
 .message.user .message-avatar {
   background: var(--bg-tertiary);
 }

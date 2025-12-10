@@ -20,3 +20,12 @@ export interface UserProfile {
     displayName: string;
     createdAt: Timestamp | Date;
 }
+
+export interface AIProvider {
+    id: string;
+    name: string;        // Display name e.g. "Gemini 2.5 Flash"
+    key: string;         // Key for n8n routing e.g. "gemini"
+    isActive: boolean;   // Enable/disable
+    order: number;       // Display order
+    createdAt?: Timestamp | Date;
+}

@@ -12,7 +12,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log('Sending to n8n:', { message: body.message, conversationId: body.conversationId });
+        console.log('Sending to n8n:', {
+            message: body.message,
+            conversationId: body.conversationId,
+            aiProvider: body.aiProvider
+        });
 
         const response = await fetch(webhookUrl, {
             method: 'POST',
@@ -22,6 +26,7 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 message: body.message,
                 conversationId: body.conversationId,
+                aiProvider: body.aiProvider || 'gemini',
                 timestamp: new Date().toISOString(),
             }),
         });

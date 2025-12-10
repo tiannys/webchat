@@ -3,7 +3,11 @@ interface N8nResponse {
     [key: string]: unknown;
 }
 
-export async function sendMessageToN8n(message: string, conversationId?: string): Promise<string> {
+export async function sendMessageToN8n(
+    message: string,
+    conversationId?: string,
+    aiProvider?: string
+): Promise<string> {
     try {
         // Use API route to proxy the request (avoids Mixed Content issues on HTTPS)
         const response = await fetch('/api/chat', {
@@ -14,6 +18,7 @@ export async function sendMessageToN8n(message: string, conversationId?: string)
             body: JSON.stringify({
                 message,
                 conversationId,
+                aiProvider: aiProvider || 'gemini', // Default to gemini
             }),
         });
 
@@ -43,3 +48,4 @@ export async function sendMessageToN8n(message: string, conversationId?: string)
         throw error;
     }
 }
+

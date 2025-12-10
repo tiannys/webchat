@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { sendMessageToN8n } from '@/lib/n8n';
 import {
@@ -13,7 +14,7 @@ import {
     doc,
     updateDoc,
 } from 'firebase/firestore';
-import { Message } from '@/types';
+import { Message, AIProvider } from '@/types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -23,11 +24,39 @@ interface ChatAreaProps {
 }
 
 export default function ChatArea({ conversationId, onTitleChange }: ChatAreaProps) {
+    const router = useRouter();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [aiProviders, setAiProviders] = useState<AIProvider[]>([]);
+    const [selectedProvider, setSelectedProvider] = useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Fetch AI providers
+    useEffect(() => {
+        const q = query(
+            collection(db, 'ai_providers'),
+            orderBy('order', 'asc')
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const providers: AIProvider[] = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data() as Omit<AIProvider, 'id'>;
+                if (data.isActive) {
+                    providers.push({ id: doc.id, ...data });
+                }
+            });
+            setAiProviders(providers);
+            // Set default provider if not set
+            if (!selectedProvider && providers.length > 0) {
+                setSelectedProvider(providers[0].key);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [selectedProvider]);
 
     useEffect(() => {
         const q = query(
@@ -94,8 +123,8 @@ export default function ChatArea({ conversationId, onTitleChange }: ChatAreaProp
                 updatedAt: serverTimestamp(),
             });
 
-            // Send to n8n and get response
-            const response = await sendMessageToN8n(userMessage, conversationId);
+            // Send to n8n with selected AI provider
+            const response = await sendMessageToN8n(userMessage, conversationId, selectedProvider);
 
             // Add assistant message
             await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
@@ -185,6 +214,38 @@ export default function ChatArea({ conversationId, onTitleChange }: ChatAreaProp
                 <div ref={messagesEndRef} />
             </div>
 
+            {/* AI Provider Selector */}
+            <div className="ai-selector-container">
+                <div className="ai-selector">
+                    <label>AI Model:</label>
+                    <select
+                        value={selectedProvider}
+                        onChange={(e) => setSelectedProvider(e.target.value)}
+                        disabled={loading || aiProviders.length === 0}
+                    >
+                        {aiProviders.length === 0 ? (
+                            <option value="">No providers configured</option>
+                        ) : (
+                            aiProviders.map((provider) => (
+                                <option key={provider.id} value={provider.key}>
+                                    {provider.name}
+                                </option>
+                            ))
+                        )}
+                    </select>
+                    <button
+                        className="settings-link"
+                        onClick={() => router.push('/settings')}
+                        title="Manage AI Providers"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="input-container">
                 <div className="input-wrapper">
                     <textarea
@@ -207,3 +268,4 @@ export default function ChatArea({ conversationId, onTitleChange }: ChatAreaProp
         </div>
     );
 }
+
